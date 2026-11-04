@@ -47,7 +47,7 @@ namespace Renumber.Core
                 }
             }
 
-            var selection = new HashSet<long>(uidoc.Selection.GetElementIds().Select(id => id.Value));
+            var selection = new HashSet<long>(uidoc.Selection.GetElementIds().Select(id => id.GetValue()));
             return new ScopeSource(doc, view, selection);
         }
 
@@ -63,7 +63,7 @@ namespace Renumber.Core
                         new FilteredElementCollector(Document, ActiveView.Id)
                             .OfClass(typeof(FamilyInstance))
                             .ToElementIds()
-                            .Select(id => id.Value)));
+                            .Select(id => id.GetValue())));
 
                 case ElementScope.Selection:
                     return Selection;

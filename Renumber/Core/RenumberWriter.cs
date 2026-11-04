@@ -24,7 +24,7 @@ namespace Renumber.Core
 
                 foreach (PlanRow row in plan.Changes)
                 {
-                    Element element = doc.GetElement(new ElementId(row.Id));
+                    Element element = doc.GetElement(ElementIdExtensions.FromValue(row.Id));
                     Parameter parameter = element == null ? null : plan.Parameter.Find(element);
                     try
                     {

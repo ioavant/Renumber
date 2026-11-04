@@ -51,7 +51,7 @@ namespace Renumber.Core
                 if (category == null || category.CategoryType != CategoryType.Model)
                     continue;
 
-                long id = category.Id.Value;
+                long id = category.Id.GetValue();
                 if (!found.TryGetValue(id, out CategoryChoice choice))
                     found[id] = choice = new CategoryChoice { Id = id, Name = category.Name };
                 choice.Count++;
@@ -65,7 +65,7 @@ namespace Renumber.Core
         public static List<FamilyInstance> Instances(Document doc, long categoryId)
         {
             return new FilteredElementCollector(doc)
-                .OfCategoryId(new ElementId(categoryId))
+                .OfCategoryId(ElementIdExtensions.FromValue(categoryId))
                 .OfClass(typeof(FamilyInstance))
                 .Cast<FamilyInstance>()
                 .Where(IsNumberable)

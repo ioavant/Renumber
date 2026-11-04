@@ -66,6 +66,13 @@ RenumberWindow (WPF)     слева настройки, справа живое 
   нумерацию не входят — они принадлежат хосту.
 - **Охват**: весь проект / видимые в активном виде / текущее выделение. Если при
   запуске что-то выделено — по умолчанию выделение.
+- **Выделение строк в превью** (обычное, Ctrl/Shift + клик, без чекбоксов) сужает
+  охват ещё раз: обрабатываются только выделенные строки. Остальные остаются в
+  таблице со статусом `not selected` и держат свои номера как элементы вне охвата —
+  выделенные нумеруются вокруг них (в Renumber all совпадение — оранжевый
+  конфликт). Выделение хранится по Id и восстанавливается после каждого пересчёта;
+  строки, выпавшие из превью (сменили категорию/охват), забываются. Кнопка
+  становится `Renumber selected (N)`, ссылка `process all rows` сбрасывает выбор.
 
 ## Сборка и тест
 
@@ -73,7 +80,7 @@ RenumberWindow (WPF)     слева настройки, справа живое 
 
 ```
 Revit     Framework         Компилируется против    Выход
-2024      net48             установленный 2024      bin\<Config>\Vixeldorf\
+2022–2024 net48            установленный 2022      bin\<Config>\Vixeldorf\
 2025+     net8.0-windows    2025.0 из NuGet         bin\<Config>\Vixeldorf\net8\
 ```
 
@@ -94,9 +101,17 @@ downloadUrl), собрать, `gh release create vX.Y.Z` с MSI, запушит�
 
 Проверка ссылок — **в отдельном процессе на каждый DLL**:
 ```
-net48:  mscorlib 4.0,       RevitAPI 24.3,  Newtonsoft.Json 13.0
+net48:  mscorlib 4.0,       RevitAPI 22.0,  Newtonsoft.Json 11.0
 net8:   System.Runtime 8.0, RevitAPI 25.0,  PresentationFramework 8.0
 ```
+
+**2022–2023**, как в остальных плагинах:
+- `ElementId` — только через `Core\ElementIdExtensions` (`GetValue()` /
+  `FromValue()`): `Value` и `ElementId(long)` появились в 2024, `IntegerValue`
+  убран в 2026. Прямой `.Value` / `new ElementId(long)` на net48 не скомпилируется.
+- Newtonsoft в Revit свой на каждый год (2022 — 11.0, 2023 — 12.0, 2024 — 13.0).
+  Ссылаемся на 11.0 из 2022; в `Revit.exe.config` 2023 и 2024 есть
+  `bindingRedirect 0.0.0.0-12/13`, поэтому та же DLL грузится везде.
 
 Тест — Revit 2024 через Add-in Manager (грузит DLL напрямую, .addin не нужен):
 `Renumber\bin\Debug\Vixeldorf\Renumber.dll` → `Renumber.Commands.RenumberCommand`.
@@ -109,7 +124,8 @@ net8:   System.Runtime 8.0, RevitAPI 25.0,  PresentationFramework 8.0
 - [ ] Предупреждение Revit о дублях Mark при конфликтах в режиме Renumber all.
 - [ ] Охват «активный вид» для спецификации (`FilteredElementCollector(doc, scheduleId)`).
 - [ ] Режим Change format и ссылки «In use» на реальной модели.
-- [ ] Лента, Help Center, баннер обновления; установка MSI на 2024–2027.
+- [ ] Лента, Help Center, баннер обновления; установка MSI на 2022–2027.
+- [ ] Запуск в Revit 2022 и 2023 (сборка против 2022 API чистая, в Revit не гонялось).
 
 ## Дальше: фоновый режим (IUpdater)
 

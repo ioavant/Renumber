@@ -12,7 +12,7 @@ preview of every element's new value before anything is written.
 - Duplicates, conflicts and elements borrowed by other users are shown, not hidden
 - The whole run is one Undo step
 
-Revit 2024–2027. Download the installer from the
+Revit 2022–2027. Download the installer from the
 [latest release](https://github.com/ioavant/Renumber/releases/latest).
 The add-in appears on the **Vixeldorf** tab → **Renumber** panel.
 
@@ -20,7 +20,7 @@ Full product description: [docs/product-facts.md](docs/product-facts.md).
 
 ## Building
 
-Needs Revit 2024 installed (the net48 half compiles against it), the .NET 8 SDK,
+Needs Revit 2022 installed (the net48 half compiles against it), the .NET 8 SDK,
 and for the installer Visual Studio / Build Tools with the WiX Toolset v3, plus
 the shared `_branding` folder one level above this repository.
 

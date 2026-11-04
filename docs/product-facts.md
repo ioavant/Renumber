@@ -19,7 +19,7 @@ formatting — each consumer styles this its own way.
 - **Publisher:** Vixeldorf
 - **Category:** Revit add-in — documentation / tagging, any discipline
 - **Current version:** 1.0.0
-- **Platform:** Autodesk Revit 2024 through 2027 (Windows, 64-bit)
+- **Platform:** Autodesk Revit 2022 through 2027 (Windows, 64-bit)
 - **Interface language:** English
 - **Website:** https://www.vixeldorf.com
 - **Support:** yoav@vixeldorf.com, answered within 5 business days
@@ -108,7 +108,7 @@ standard changes from F01 to F-01.
 
 ## Requirements
 
-- Revit 2024, 2025, 2026 or 2027, 64-bit Windows
+- Revit 2022 through 2027, 64-bit Windows
 - A project document (not the Family Editor)
 
 ## Where data lives
@@ -128,10 +128,10 @@ standard changes from F01 to F-01.
 
 ## Install / uninstall
 
-The MSI installs the add-in to `%ProgramData%\Vixeldorf\Renumber\` (Revit 2024
+The MSI installs the add-in to `%ProgramData%\Vixeldorf\Renumber\` (Revit 2022–2024
 loads the .NET Framework build, 2025 and later the .NET 8 build from the `net8`
 subfolder) and registers it for each Revit version ticked in the installer:
-`%ProgramData%\Autodesk\Revit\Addins\<year>` for 2024–2026, and
+`%ProgramData%\Autodesk\Revit\Addins\<year>` for 2022–2026, and
 `%ProgramFiles%\Autodesk\Revit\Addins\2027` for 2027, which no longer reads
 ProgramData. The command appears on the **Vixeldorf** tab, **Renumber** panel.
 

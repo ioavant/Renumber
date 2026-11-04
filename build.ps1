@@ -6,7 +6,7 @@
 .DESCRIPTION
     Two assemblies, not one per Revit year:
 
-        net48           -> Revit 2024,  compiled against the installed Revit 2024 API
+        net48           -> Revit 2022-2024, compiled against the installed Revit 2022 API
         net8.0-windows  -> Revit 2025+, compiled against the Revit 2025.0
                            reference assemblies from NuGet
 
@@ -61,7 +61,7 @@ if (-not $NoInstaller) {
 
 Write-Host "`n=== Output ===" -ForegroundColor Cyan
 $bin = Join-Path $root "Renumber\bin\$Configuration\$brand"
-foreach ($row in @(@('Revit 2024 ', 'net48', 'Renumber.dll'), @('Revit 2025+', 'net8 ', 'net8\Renumber.dll'))) {
+foreach ($row in @(@('Revit 2022-24', 'net48', 'Renumber.dll'), @('Revit 2025+  ', 'net8 ', 'net8\Renumber.dll'))) {
     $dll = Join-Path $bin $row[2]
     Write-Host ("  {0}  {1}  {2,8:N0} bytes  {3}" -f $row[0], $row[1], (Get-Item $dll).Length, $dll)
 }

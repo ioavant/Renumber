@@ -3,9 +3,9 @@
   <!--
     Two assemblies, not one per Revit year:
 
-      Revit     Assembly          Compiled against       Output
-      2024      net48             Revit 2024 API         bin\<Config>\Vixeldorf\
-      2025+     net8.0-windows    Revit 2025.0 (NuGet)   bin\<Config>\Vixeldorf\net8\
+      Revit       Assembly          Compiled against       Output
+      2022-2024   net48             Revit 2022 API         bin\<Config>\Vixeldorf\
+      2025+       net8.0-windows    Revit 2025.0 (NuGet)   bin\<Config>\Vixeldorf\net8\
 
     Revit 2025 moved off .NET Framework, so a single assembly cannot cover both
     sides; 2025.5 went further and runs on .NET 10. Each half is compiled against
@@ -66,22 +66,23 @@
 
     <!-- The oldest release the net48 assembly serves. Not the newest installed:
          compiling against a later API would let in members that are missing in
-         2024 and fail only when a 2024 user runs the command. -->
-    <Net48RevitApiDir>$(AutodeskRoot)\Revit 2024</Net48RevitApiDir>
+         2022 and fail only when a 2022 user runs the command. -->
+    <Net48RevitApiDir>$(AutodeskRoot)\Revit 2022</Net48RevitApiDir>
   </PropertyGroup>
 
   <Target Name="VerifyRevitApiPresent" BeforeTargets="ResolveAssemblyReferences"
           Condition=" '$(TargetFramework)' == 'net48' ">
     <Error Condition=" !Exists('$(Net48RevitApiDir)\RevitAPI.dll') "
-           Text="The net48 half is compiled against the Revit 2024 API, which was not found at '$(Net48RevitApiDir)'. Install Revit 2024, or override with -p:AutodeskRoot=&lt;path&gt;." />
+           Text="The net48 half is compiled against the Revit 2022 API, which was not found at '$(Net48RevitApiDir)'. Install Revit 2022, or override with -p:AutodeskRoot=&lt;path&gt;." />
   </Target>
 
   <!--
-    Revit 2024: the locally installed assemblies.
+    Revit 2022: the locally installed assemblies.
 
     Private=false: these ship with Revit and must never be copied next to the
-    add-in. Newtonsoft is taken from the same folder rather than from NuGet so
-    that the reference is, by construction, the exact assembly this Revit loads.
+    add-in. Newtonsoft comes from the same folder, so the reference is 11.0.0.0;
+    Revit 2023 and 2024 redirect 0.0.0.0-12/13 to their own copy in Revit.exe.config,
+    so the one assembly binds in all three.
   -->
   <ItemGroup Condition=" '$(TargetFramework)' == 'net48' ">
     <Reference Include="RevitAPI">

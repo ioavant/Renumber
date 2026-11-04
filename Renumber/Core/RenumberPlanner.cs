@@ -77,18 +77,24 @@ namespace Renumber.Core
             public int? Number;
             public int? SourceNumber;
             public bool Duplicate;
+            public bool NotPicked;
             public bool Target;
             public string SkipReason;
             public Level Level;
             public XYZ Point;
 
-            public long Id => Element.Id.Value;
+            public long Id => Element.Id.GetValue();
             public double Elevation => Level?.Elevation ?? double.MaxValue;
         }
 
         /// <param name="instances">Every numberable instance of the rule's category.</param>
+        /// <param name="picked">
+        /// Rows the user selected in the preview, or null for all of them. Unpicked rows
+        /// stay in the plan, unchanged, and keep their numbers like any element outside
+        /// the scope — so the picked ones are numbered around them.
+        /// </param>
         public static RenumberPlan Build(ScopeSource source, NumberingRule rule, NumberFormat format,
-                                         IReadOnlyList<FamilyInstance> instances)
+                                         IReadOnlyList<FamilyInstance> instances, HashSet<long> picked = null)
         {
             Document doc = source.Document;
             var excluded = new HashSet<string>(rule.ExcludedFamilies ?? new List<string>(), StringComparer.Ordinal);
@@ -119,7 +125,9 @@ namespace Renumber.Core
                 item.Level = LevelOf(doc, item.Element);
                 item.Point = PointOf(item.Element);
                 item.SkipReason = WhyNotWritable(doc, item, rule.Parameter);
+                item.NotPicked = picked != null && !picked.Contains(item.Id);
                 item.Target = item.SkipReason == null
+                              && !item.NotPicked
                               && (oldFormat != null
                                   ? item.SourceNumber != null
                                   : rule.Mode == NumberingMode.RenumberAll
@@ -153,6 +161,10 @@ namespace Renumber.Core
                 {
                     row.State = RowState.Skipped;
                     row.Status = item.SkipReason;
+                }
+                else if (item.NotPicked)
+                {
+                    NotPicked(row);
                 }
                 else if (item.Target)
                 {
@@ -223,6 +235,10 @@ namespace Renumber.Core
                     row.State = RowState.Skipped;
                     row.Status = item.SkipReason;
                 }
+                else if (item.NotPicked)
+                {
+                    NotPicked(row);
+                }
                 else if (item.Target)
                 {
                     int number = item.SourceNumber.Value;
@@ -253,6 +269,13 @@ namespace Renumber.Core
 
                 plan.Rows.Add(row);
             }
+        }
+
+        private static void NotPicked(PlanRow row)
+        {
+            row.New = row.Current;
+            row.State = RowState.Unchanged;
+            row.Status = "not selected";
         }
 
         private static PlanRow NewRow(RenumberPlan plan, Item item)
@@ -308,6 +331,8 @@ namespace Renumber.Core
                 return "family not selected";
             if (scope != null && !scope.Contains(other.Id))
                 return "outside the scope";
+            if (other.NotPicked)
+                return "not selected";
             return other.SkipReason != null ? "not writable" : "keeps its value";
         }
 

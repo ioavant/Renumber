@@ -45,6 +45,8 @@
 		<WixVariable Id="WixUIDialogBmp" Value="$(var.DialogBmp)"/>
 
 		<!-- ================== UI CHECKBOXES ================== -->
+		<Property Id="REVIT2022" Value="1"/>
+		<Property Id="REVIT2023" Value="1"/>
 		<Property Id="REVIT2024" Value="1"/>
 		<Property Id="REVIT2025" Value="1"/>
 		<Property Id="REVIT2026" Value="1"/>
@@ -77,6 +79,20 @@
 				<Directory Id="Autodesk" Name="Autodesk">
 					<Directory Id="Revit" Name="Revit">
 						<Directory Id="Addins" Name="Addins">
+
+							<Directory Id="R2022" Name="2022">
+								<Component Id="Addin2022" Guid="$(var.Addin2022Guid)">
+									<Condition>REVIT2022=1</Condition>
+									<File Id="Addin2022File" Source="$(var.AddinDir)$(var.AddinFileStem)_22.addin"/>
+								</Component>
+							</Directory>
+
+							<Directory Id="R2023" Name="2023">
+								<Component Id="Addin2023" Guid="$(var.Addin2023Guid)">
+									<Condition>REVIT2023=1</Condition>
+									<File Id="Addin2023File" Source="$(var.AddinDir)$(var.AddinFileStem)_23.addin"/>
+								</Component>
+							</Directory>
 
 							<Directory Id="R2024" Name="2024">
 								<Component Id="Addin2024" Guid="$(var.Addin2024Guid)">
@@ -136,6 +152,20 @@
 			<ComponentRef Id="CoreFilesNet8"/>
 			<?endif?>
 
+			<Feature Id="Revit2022Feature"
+					 Title="Revit 2022"
+					 Level="1"
+					 Absent="allow">
+				<ComponentRef Id="Addin2022"/>
+			</Feature>
+
+			<Feature Id="Revit2023Feature"
+					 Title="Revit 2023"
+					 Level="1"
+					 Absent="allow">
+				<ComponentRef Id="Addin2023"/>
+			</Feature>
+
 			<Feature Id="Revit2024Feature"
 					 Title="Revit 2024"
 					 Level="1"
@@ -183,9 +213,25 @@
 						 NoPrefix="yes"
 						 Text="Select Revit versions to install the add-in:"/>
 
-				<Control Id="Revit2024"
+				<Control Id="Revit2022"
 						 Type="CheckBox"
 						 X="20" Y="40"
+						 Width="200" Height="17"
+						 Property="REVIT2022"
+						 CheckBoxValue="1"
+						 Text="Revit 2022"/>
+
+				<Control Id="Revit2023"
+						 Type="CheckBox"
+						 X="20" Y="60"
+						 Width="200" Height="17"
+						 Property="REVIT2023"
+						 CheckBoxValue="1"
+						 Text="Revit 2023"/>
+
+				<Control Id="Revit2024"
+						 Type="CheckBox"
+						 X="20" Y="80"
 						 Width="200" Height="17"
 						 Property="REVIT2024"
 						 CheckBoxValue="1"
@@ -193,7 +239,7 @@
 
 				<Control Id="Revit2025"
 						 Type="CheckBox"
-						 X="20" Y="60"
+						 X="20" Y="100"
 						 Width="200" Height="17"
 						 Property="REVIT2025"
 						 CheckBoxValue="1"
@@ -201,7 +247,7 @@
 
 				<Control Id="Revit2026"
 						 Type="CheckBox"
-						 X="20" Y="80"
+						 X="20" Y="120"
 						 Width="200" Height="17"
 						 Property="REVIT2026"
 						 CheckBoxValue="1"
@@ -209,7 +255,7 @@
 
 				<Control Id="Revit2027"
 						 Type="CheckBox"
-						 X="20" Y="100"
+						 X="20" Y="140"
 						 Width="200" Height="17"
 						 Property="REVIT2027"
 						 CheckBoxValue="1"

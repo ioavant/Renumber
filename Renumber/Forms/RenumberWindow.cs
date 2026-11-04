@@ -73,6 +73,15 @@ namespace Renumber.Forms
         private RenumberPlan _plan;
         private bool _loading;
 
+        /// <summary>
+        /// Rows selected in the preview. Empty means "all rows"; otherwise only these are
+        /// processed. Kept by element id, because every recalculation rebuilds the rows.
+        /// </summary>
+        private readonly HashSet<long> _picked = new HashSet<long>();
+
+        /// <summary>Set while the grid is refilled, when its selection changes by itself.</summary>
+        private bool _refilling;
+
         private ComboBox _category;
         private StackPanel _families;
         private RadioButton _scopeProject;
@@ -96,6 +105,7 @@ namespace Renumber.Forms
         private TextBox _sourceSuffix;
         private DataGrid _grid;
         private TextBlock _summary;
+        private Button _unpick;
         private TextBlock _result;
         private Button _apply;
 
@@ -349,16 +359,38 @@ namespace Renumber.Forms
         {
             var panel = new DockPanel();
 
+            var top = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
+            _unpick = LinkButton("process all rows", () =>
+            {
+                _picked.Clear();
+                Recalculate();
+            });
+            _unpick.Visibility = Visibility.Collapsed;
+            _unpick.VerticalAlignment = VerticalAlignment.Top;
+            DockPanel.SetDock(_unpick, Dock.Right);
+            top.Children.Add(_unpick);
+
             _summary = new TextBlock
             {
-                Margin = new Thickness(0, 0, 0, 6),
                 Foreground = UiStyle.Strong,
                 TextWrapping = TextWrapping.Wrap,
             };
-            DockPanel.SetDock(_summary, Dock.Top);
-            panel.Children.Add(_summary);
+            top.Children.Add(_summary);
+            DockPanel.SetDock(top, Dock.Top);
+            panel.Children.Add(top);
 
             _grid = UiStyle.Grid();
+            _grid.SelectionMode = DataGridSelectionMode.Extended;
+            _grid.ToolTip = "Select rows (Ctrl / Shift + click) to process only them.";
+            _grid.SelectionChanged += (s, e) =>
+            {
+                if (_refilling || e.OriginalSource != _grid)
+                    return;
+                _picked.Clear();
+                foreach (RowView row in _grid.SelectedItems.OfType<RowView>())
+                    _picked.Add(row.Id);
+                Schedule();
+            };
             _grid.Columns.Add(UiStyle.Column("#", nameof(RowView.Index), 44));
             _grid.Columns.Add(UiStyle.Column("Id", nameof(RowView.Id), 80));
             _grid.Columns.Add(UiStyle.Column("Family", nameof(RowView.Family), 170));
@@ -567,7 +599,7 @@ namespace Renumber.Forms
         private void Recalculate()
         {
             _plan = null;
-            _grid.ItemsSource = null;
+            SetRows(null);
 
             NumberingRule rule = ReadRule();
             bool reformat = rule.Mode == NumberingMode.Reformat;
@@ -598,7 +630,13 @@ namespace Renumber.Forms
 
             try
             {
-                _plan = RenumberPlanner.Build(_source, rule, format, _instances);
+                _plan = RenumberPlanner.Build(_source, rule, format, _instances, _picked.Count > 0 ? _picked : null);
+
+                // A change of category, families or scope can take picked rows out of the
+                // preview. Forget those; if none is left, that is "all rows" again.
+                var shown = new HashSet<long>(_plan.Rows.Select(r => r.Id));
+                if (_picked.Count > 0 && _picked.RemoveWhere(id => !shown.Contains(id)) > 0)
+                    _plan = RenumberPlanner.Build(_source, rule, format, _instances, _picked.Count > 0 ? _picked : null);
             }
             catch (Exception e)
             {
@@ -608,7 +646,7 @@ namespace Renumber.Forms
                 return;
             }
 
-            _grid.ItemsSource = _plan.Rows.Select(r => new RowView(r)).ToList();
+            SetRows(_plan.Rows.Select(r => new RowView(r)).ToList());
             ShowPatterns(NumberPattern.Detect(_plan.Rows.Select(r => r.Current)));
 
             if (reformat)
@@ -620,8 +658,28 @@ namespace Renumber.Forms
             }
 
             _summary.Foreground = UiStyle.Strong;
-            _summary.Text = Summary(_plan);
+            _summary.Text = Summary(_plan, _picked.Count);
             UpdateApply();
+        }
+
+        /// <summary>Refills the grid and puts the picked rows back into its selection.</summary>
+        private void SetRows(List<RowView> rows)
+        {
+            _refilling = true;
+            try
+            {
+                _grid.ItemsSource = rows;
+                if (rows != null && _picked.Count > 0)
+                {
+                    foreach (RowView row in rows.Where(r => _picked.Contains(r.Id)))
+                        _grid.SelectedItems.Add(row);
+                }
+            }
+            finally
+            {
+                _refilling = false;
+            }
+            _unpick.Visibility = _picked.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         /// <summary>Lists the formats in use; clicking one takes it as the old format or the new one.</summary>
@@ -662,16 +720,15 @@ namespace Renumber.Forms
             _start.Text = pattern.PaddedStart(start);
         }
 
-        private static string Summary(RenumberPlan plan)
+        private static string Summary(RenumberPlan plan, int picked)
         {
             if (plan.Rows.Count == 0)
                 return "Nothing in scope: no elements of the chosen families here.";
 
-            var parts = new List<string>
-            {
-                $"{plan.Rows.Count} element(s) in scope",
-                $"{plan.ChangeCount} to write",
-            };
+            var parts = new List<string> { $"{plan.Rows.Count} element(s) in scope" };
+            if (picked > 0)
+                parts.Add($"only the {picked} selected row(s) are processed");
+            parts.Add($"{plan.ChangeCount} to write");
             if (plan.OverwriteCount > 0)
                 parts.Add($"{plan.OverwriteCount} of them replace an existing value");
             if (plan.SkippedCount > 0)
@@ -685,7 +742,8 @@ namespace Renumber.Forms
         {
             int count = _plan?.ChangeCount ?? 0;
             _apply.IsEnabled = count > 0;
-            _apply.Content = count > 0 ? $"Renumber ({count})" : "Renumber";
+            string label = _picked.Count > 0 ? "Renumber selected" : "Renumber";
+            _apply.Content = count > 0 ? $"{label} ({count})" : label;
         }
 
         // ---------------------------------------------------------------- write

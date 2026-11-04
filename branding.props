@@ -19,9 +19,8 @@
     <!-- IExternalApplication class the .addin manifests point at. -->
     <BrandAppClassName>Renumber.App</BrandAppClassName>
 
-    <!-- 2024 is the floor: the code reads ElementId.Value, which 2024 introduced. -->
-    <BrandSupportedRevitVersions>2024;2025;2026;2027</BrandSupportedRevitVersions>
-    <!-- Revit 2025+ load the net8.0-windows assembly from the net8 subfolder. -->
+    <BrandSupportedRevitVersions>2022;2023;2024;2025;2026;2027</BrandSupportedRevitVersions>
+    <!-- Revit 2025+ load the net8.0-windows assembly from the net8 subfolder; 2022-2024 keep net48. -->
     <BrandNet8MinRevitVersion>2025</BrandNet8MinRevitVersion>
 
     <BrandProjectDir>$(MSBuildThisFileDirectory)Renumber\</BrandProjectDir>
@@ -43,6 +42,8 @@
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(Brand)' == 'Vixeldorf' ">
+    <BrandAddinComponent Include="2022"><Guid>C215FD5A-B849-42C2-A1B2-FAE7C46CEBE5</Guid></BrandAddinComponent>
+    <BrandAddinComponent Include="2023"><Guid>6366E291-0B00-42CF-A4CF-839EFCAC5573</Guid></BrandAddinComponent>
     <BrandAddinComponent Include="2024"><Guid>32ABB9AE-BAD5-44D4-A243-468D6A9A58C4</Guid></BrandAddinComponent>
     <BrandAddinComponent Include="2025"><Guid>CA29A4E4-A894-455E-92BD-A54D2708B352</Guid></BrandAddinComponent>
     <BrandAddinComponent Include="2026"><Guid>C46720CB-4F12-4A68-9C3C-4325143F5803</Guid></BrandAddinComponent>
