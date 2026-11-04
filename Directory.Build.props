@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+    Brand wiring for Renumber. Imported by Renumber\Directory.Build.props
+    (which shadows this one for the add-in project) and explicitly by
+    Installer.wixproj, which does not pick up Directory.Build.props on its own.
+    Renumber ships under Vixeldorf only; see branding.props.
+  -->
+
+  <PropertyGroup>
+    <_BrandingPropsImported Condition=" '$(_BrandingPropsImported)' == '' ">false</_BrandingPropsImported>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(_BrandingPropsImported)' == 'false' ">
+    <Brand Condition=" '$(Brand)' == '' ">Vixeldorf</Brand>
+  </PropertyGroup>
+
+  <!-- Product first: it may override defaults the shared engine would fill in. -->
+  <Import Project="$(MSBuildThisFileDirectory)branding.props"
+          Condition=" '$(_BrandingPropsImported)' == 'false' " />
+
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove('$(MSBuildThisFileDirectory)', '_branding\Branding.props'))\_branding\Branding.props"
+          Condition=" '$(_BrandingPropsImported)' == 'false' " />
+
+</Project>

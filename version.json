@@ -1,0 +1,5 @@
+{
+  "version": "1.0.0",
+  "downloadUrl": "https://github.com/ioavant/Renumber/releases/download/v1.0.0/Renumber_Setup.msi",
+  "releaseNotes": "First release: number family instances, and change the format of existing marks (F02 → F-02)"
+}

@@ -1,0 +1,52 @@
+<Project>
+
+  <!--
+    Renumber — product side of the branding configuration.
+
+    What a BRAND is (ribbon tab, About button, help URL, installer artwork,
+    update policy) lives in ..\_branding\<Brand>\brand.props and is shared by
+    every add-in. This file only describes THIS product. Renumber ships under
+    Vixeldorf only, so there is one GUID block.
+  -->
+
+  <PropertyGroup>
+    <BrandProduct>Renumber</BrandProduct>
+    <BrandProductDisplayName>Renumber</BrandProductDisplayName>
+    <BrandProductDescription>Numbers family instances of a category into a text parameter: F-01, F-02, ...</BrandProductDescription>
+
+    <!-- Namespace the generated Brand class is emitted into. -->
+    <BrandInfoNamespace>Renumber</BrandInfoNamespace>
+    <!-- IExternalApplication class the .addin manifests point at. -->
+    <BrandAppClassName>Renumber.App</BrandAppClassName>
+
+    <!-- 2024 is the floor: the code reads ElementId.Value, which 2024 introduced. -->
+    <BrandSupportedRevitVersions>2024;2025;2026;2027</BrandSupportedRevitVersions>
+    <!-- Revit 2025+ load the net8.0-windows assembly from the net8 subfolder. -->
+    <BrandNet8MinRevitVersion>2025</BrandNet8MinRevitVersion>
+
+    <BrandProjectDir>$(MSBuildThisFileDirectory)Renumber\</BrandProjectDir>
+
+    <!-- Auto-generated per install location. -->
+    <BrandCoreFilesGuid>*</BrandCoreFilesGuid>
+  </PropertyGroup>
+
+  <!-- ================================================================= -->
+  <!-- Vixeldorf. UpgradeCode and AddInId must never change once shipped: -->
+  <!-- the first is what makes a new MSI upgrade in place, the second is  -->
+  <!-- how Revit identifies the add-in.                                    -->
+  <!-- ================================================================= -->
+  <PropertyGroup Condition=" '$(Brand)' == 'Vixeldorf' ">
+    <BrandRibbonPanel>Renumber</BrandRibbonPanel>
+
+    <BrandUpgradeCode>260DF956-2221-4243-9FC3-840225B68122</BrandUpgradeCode>
+    <BrandAddInId>B1AD2137-FCE1-4ED7-BDEB-043236696DAA</BrandAddInId>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(Brand)' == 'Vixeldorf' ">
+    <BrandAddinComponent Include="2024"><Guid>32ABB9AE-BAD5-44D4-A243-468D6A9A58C4</Guid></BrandAddinComponent>
+    <BrandAddinComponent Include="2025"><Guid>CA29A4E4-A894-455E-92BD-A54D2708B352</Guid></BrandAddinComponent>
+    <BrandAddinComponent Include="2026"><Guid>C46720CB-4F12-4A68-9C3C-4325143F5803</Guid></BrandAddinComponent>
+    <BrandAddinComponent Include="2027"><Guid>91438B24-8311-4D18-BAC7-7C46AE721A28</Guid></BrandAddinComponent>
+  </ItemGroup>
+
+</Project>

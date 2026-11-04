@@ -1,0 +1,179 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Two assemblies, not one per Revit year:
+
+      Revit     Assembly          Compiled against       Output
+      2024      net48             Revit 2024 API         bin\<Config>\Vixeldorf\
+      2025+     net8.0-windows    Revit 2025.0 (NuGet)   bin\<Config>\Vixeldorf\net8\
+
+    Revit 2025 moved off .NET Framework, so a single assembly cannot cover both
+    sides; 2025.5 went further and runs on .NET 10. Each half is compiled against
+    the OLDEST release it serves, which is what makes one net8 build work in every
+    2025.x and later. Same split as the rest of the Vixeldorf add-ins — see the
+    revit-net8-split skill.
+
+    Brand wiring (BrandInfo.cs, window icon, .addin manifests) comes from
+    ..\..\_branding through ..\Directory.Build.props; see ..\branding.props.
+
+    One build produces both: .\build.ps1
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+
+    <!-- RootNamespace stays put, so embedded resources keep brand-neutral names. -->
+    <RootNamespace>Renumber</RootNamespace>
+    <AssemblyName>$(BrandAssemblyName)</AssemblyName>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <!-- The window is WPF. WindowsForms is on as well because RevitAPI.dll
+         depends on the Windows Desktop assemblies; without these the net8
+         reference pack offers the 4.0.0.0 facades instead and every build
+         reports MSB3277 conflicts. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
+    <Deterministic>true</Deterministic>
+
+    <!-- The net48 assembly sits at the brand root, the net8 one one level
+         deeper, which is the layout the branding engine, the installer and the
+         .addin manifests key off in every other add-in here. -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\$(Brand)\</OutputPath>
+    <OutputPath Condition=" '$(TargetFramework)' == 'net8.0-windows' ">bin\$(Configuration)\$(Brand)\net8\</OutputPath>
+
+    <!-- Separate intermediates per framework. AppendTargetFrameworkToOutputPath
+         above switches them off for obj\ as well, and the two inner builds would
+         otherwise share one folder and race. -->
+    <IntermediateOutputPath Condition=" '$(TargetFramework)' == 'net48' ">obj\$(Configuration)\$(Brand)\net48\</IntermediateOutputPath>
+    <IntermediateOutputPath Condition=" '$(TargetFramework)' == 'net8.0-windows' ">obj\$(Configuration)\$(Brand)\net8\</IntermediateOutputPath>
+
+    <!-- Assembly attributes come from the generated BrandInfo.cs / VersionInfo.cs;
+         letting the SDK emit its own set as well is a duplicate-attribute error. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- GenerateAssemblyInfo=false also drops [SupportedOSPlatform("windows")], so
+         the analyzer flags every AdWindows/WPF call. Revit only runs on Windows. -->
+    <NoWarn Condition=" '$(TargetFramework)' == 'net8.0-windows' ">$(NoWarn);CA1416</NoWarn>
+
+    <!-- Revit loads the add-in itself; never produce or ship an app.config. -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AutodeskRoot Condition=" '$(AutodeskRoot)' == '' ">$(ProgramW6432)\Autodesk</AutodeskRoot>
+    <AutodeskRoot Condition=" !Exists('$(AutodeskRoot)') ">$(ProgramFiles)\Autodesk</AutodeskRoot>
+
+    <!-- The oldest release the net48 assembly serves. Not the newest installed:
+         compiling against a later API would let in members that are missing in
+         2024 and fail only when a 2024 user runs the command. -->
+    <Net48RevitApiDir>$(AutodeskRoot)\Revit 2024</Net48RevitApiDir>
+  </PropertyGroup>
+
+  <Target Name="VerifyRevitApiPresent" BeforeTargets="ResolveAssemblyReferences"
+          Condition=" '$(TargetFramework)' == 'net48' ">
+    <Error Condition=" !Exists('$(Net48RevitApiDir)\RevitAPI.dll') "
+           Text="The net48 half is compiled against the Revit 2024 API, which was not found at '$(Net48RevitApiDir)'. Install Revit 2024, or override with -p:AutodeskRoot=&lt;path&gt;." />
+  </Target>
+
+  <!--
+    Revit 2024: the locally installed assemblies.
+
+    Private=false: these ship with Revit and must never be copied next to the
+    add-in. Newtonsoft is taken from the same folder rather than from NuGet so
+    that the reference is, by construction, the exact assembly this Revit loads.
+  -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net48' ">
+    <Reference Include="RevitAPI">
+      <HintPath>$(Net48RevitApiDir)\RevitAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>$(Net48RevitApiDir)\RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(Net48RevitApiDir)\NewtonSoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Autodesk.Windows: unofficial but long-stable ribbon model, used by App.cs
+         to find and reposition the shared "About" panel. -->
+    <Reference Include="AdWindows">
+      <HintPath>$(Net48RevitApiDir)\AdWindows.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- The update check. net8 has HttpClient in the shared framework. -->
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <!--
+    Revit 2025+: reference assemblies from NuGet, pinned to 2025.0 — never the
+    installed Revit. Revit 2025.5 ships a RevitAPI.dll compiled against .NET 10,
+    which a net8 project cannot reference (CS1705), and a DLL built against it
+    would not load in 2025.0-2025.4.
+
+    ExcludeAssets=runtime and PrivateAssets=all keep these compile-time only:
+    Revit supplies the real assemblies, and nothing is copied next to the add-in.
+    Newtonsoft 13.0.1 is pinned because 13.0.0.0 is the assembly version Revit
+    2025 loads.
+  -->
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net48' ">
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="2025.0.2"
+                      ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="2025.0.2"
+                      ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Nice3point.Revit.Api.AdWindows" Version="2025.0.2"
+                      ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1"
+                      ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Both are generated before CoreCompile and are git-ignored, so they may
+         not exist when the default glob runs on a clean clone. Listing them
+         explicitly makes the first build work; the Remove keeps the glob from
+         adding a duplicate on every build after that. -->
+    <Compile Remove="Properties\BrandInfo.cs;Properties\VersionInfo.cs" />
+    <Compile Include="Properties\BrandInfo.cs" />
+    <Compile Include="Properties\VersionInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Product artwork, the two ribbon sizes. Brand artwork (web_icon.png,
+         logo.png) and BrandIcon.cs come from _branding\Branding.targets. -->
+    <EmbeddedResource Include="Resources\renumber_16.png" />
+    <EmbeddedResource Include="Resources\renumber_32.png" />
+    <None Include="..\version.json" />
+  </ItemGroup>
+
+  <!-- =================================================================== -->
+  <!-- Single source of truth for the version: ..\version.json             -->
+  <!-- Reads "version" from it and generates Properties\VersionInfo.cs     -->
+  <!-- before every compile. The MSI binds its own version to the built    -->
+  <!-- DLL, so this one file drives everything.                            -->
+  <!-- =================================================================== -->
+  <PropertyGroup>
+    <VersionJsonFile>$(MSBuildProjectDirectory)\..\version.json</VersionJsonFile>
+    <GeneratedVersionFile>$(MSBuildProjectDirectory)\Properties\VersionInfo.cs</GeneratedVersionFile>
+  </PropertyGroup>
+
+  <Target Name="GenerateVersionInfo" BeforeTargets="CoreCompile" Inputs="$(VersionJsonFile)" Outputs="$(GeneratedVersionFile)">
+    <ReadLinesFromFile File="$(VersionJsonFile)">
+      <Output TaskParameter="Lines" ItemName="VersionJsonLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <VersionJsonText>@(VersionJsonLines, '')</VersionJsonText>
+      <ProductVersion>$([System.Text.RegularExpressions.Regex]::Replace($(VersionJsonText), '(?s)^.*?&quot;version&quot;\s*:\s*&quot;([^&quot;]+)&quot;.*$', '$1'))</ProductVersion>
+    </PropertyGroup>
+    <Error Condition="'$(ProductVersion)' == '' or '$(ProductVersion)' == '$(VersionJsonText)'" Text="Could not read 'version' from version.json" />
+    <ItemGroup>
+      <VersionInfoLines Include="// &lt;auto-generated&gt; — generated from version.json by the GenerateVersionInfo target. Do not edit." />
+      <VersionInfoLines Include="using System.Reflection%3B" />
+      <VersionInfoLines Include="[assembly: AssemblyVersion(&quot;$(ProductVersion)&quot;)]" />
+      <VersionInfoLines Include="[assembly: AssemblyFileVersion(&quot;$(ProductVersion)&quot;)]" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(GeneratedVersionFile)" Lines="@(VersionInfoLines)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <Message Importance="high" Text="Renumber version stamped from version.json: $(ProductVersion)" />
+  </Target>
+
+</Project>
